@@ -46,15 +46,27 @@ int tcp_connect(struct sock *sk)
 	buff = sk_stream_alloc_skb(sk, 0, sk->sk_allocation, true);
 	if (unlikely(!buff))
 		return -ENOBUFS;
-
+	/* tcp_connect负责发送TCP SYN。所以必须让后面的发送函数tcp_transmit_skb知道如何
+	   生成TCP头部信息，此处就是让tcp_transmit_skb知道生成一个TCP SYN，方式就是用此函
+	   数设置TCP_SKB_CB(skb)->tcp_flags为TCPHDR_SYN */
 	tcp_init_nondata_skb(buff, tp->write_seq++, TCPHDR_SYN);
 	tcp_mstamp_refresh(tp);
 	tp->retrans_stamp = tcp_time_stamp(tp);
 	tcp_connect_queue_skb(sk, buff);
-	tcp_ecn_send_syn(sk, buff);
+	tcp_ecn_send_syn(sk, buff);/* ECN-Explicit Congestion Notification显式拥塞控制。fc3168。 
+	                              ECN允许拥塞控制的端对端通知而避免丢包。ECN为一项可选功能，
+	                              如果底层网络设施支持，则可能被启用ECN的两个端点使用。通常
+	                              来说，TCP/IP网络通过丢弃数据包来表明信道阻塞。在ECN成功协
+	                              商的情况下，ECN感知路由器可以在IP头中设置一个标记来代替丢
+	                              弃数据包，以标明阻塞即将发生。数据包的接收端回应发送端的表
+	                              示，降低其传输速率，就如同在往常中检测到包丢失那样。此函数
+	                              这里只是根据sysctl_tcp_ecn判断是否使用ecn进而设置标志位
+	                              tp->ecn_flags，并没有生成真正的包头信息。 */
 	tcp_rbtree_insert(&sk->tcp_rtx_queue, buff);
 
 	/* Send off SYN; include data in Fast Open. */
+	/* 调用tcp_transmit_skb函数进行TCP报文发送，它会根据相关flag生成相应的TCP头信息例如
+	   TCP SYN以及TCP option。很显然MPTCP相关的option也由此函数过程生成。详情点击下方链接 */
 	err = tp->fastopen_req ? tcp_send_syn_data(sk, buff) :
 	      tcp_transmit_skb(sk, buff, 1, sk->sk_allocation);
 	if (err == -ECONNREFUSED)
@@ -65,11 +77,12 @@ int tcp_connect(struct sock *sk)
 	 */
 	tp->snd_nxt = tp->write_seq;
 	tp->pushed_seq = tp->write_seq;
-	buff = tcp_send_head(sk);
+	buff = tcp_send_head(sk); /* TODO */
 	if (unlikely(buff)) {
 		tp->snd_nxt	= TCP_SKB_CB(buff)->seq;
 		tp->pushed_seq	= TCP_SKB_CB(buff)->seq;
 	}
+	/* TCP状态变为TCP_MIB_ACTIVEOPENS */
 	TCP_INC_STATS(sock_net(sk), TCP_MIB_ACTIVEOPENS);
 
 	/* Timer for repeating the SYN until an answer. */
@@ -80,5 +93,7 @@ int tcp_connect(struct sock *sk)
 ```
 
 [tcp_connect_init](MPTCP-tcp_connect_init.html)
+
+[tcp_transmit_skb](MPTCP-tcp_transmit_skb.html)
 
 返回 [tcp_v4_connect](MPTCP-code-study.html)
