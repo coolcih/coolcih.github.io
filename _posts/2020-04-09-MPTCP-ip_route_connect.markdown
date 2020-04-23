@@ -7,7 +7,7 @@ categories: Network technology
 
 
 ```c
-/* include\net\route.h */
+/* include/net/route.h */
 static inline struct rtable *ip_route_connect(struct flowi4 *fl4,
 					      __be32 dst, __be32 src, u32 tos,
 					      int oif, u8 protocol,

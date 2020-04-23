@@ -7,7 +7,7 @@ categories: Network technology
 
 
 ```c
-/* net\ipv4\tcp_output.c */
+/* net/ipv4/tcp_output.c */
 /* Build a SYN and send it off. */
 int tcp_connect(struct sock *sk)
 {
@@ -67,6 +67,12 @@ int tcp_connect(struct sock *sk)
 	/* Send off SYN; include data in Fast Open. */
 	/* 调用tcp_transmit_skb函数进行TCP报文发送，它会根据相关flag生成相应的TCP头信息例如
 	   TCP SYN以及TCP option。很显然MPTCP相关的option也由此函数过程生成。详情点击下方链接 */
+    /* 如果是tcp fast open场景(RFC7431)，会先调用tcp_send_syn_data，然后由其再调用	
+	tcp_transmit_skb，tcp_send_syn_data主要作用是获取cached的cookie来为后续生成的SYN报文
+	做准备，例如，fast open支持使用IANA定义的option kind 34或者使用experiment kink 254进行
+	信息交换，至于使用哪一种方式，取决于cookie cache建立之前对端(发SYN)和本端(收SYN)的沟通使用
+	的是何种方式，tcp_send_syn_data->tcp_fastopen_cookie_check会将方式从cache读出，以便
+	本端发SYN时使用。关于tcp_send_syn_data详情点击下方链接 */
 	err = tp->fastopen_req ? tcp_send_syn_data(sk, buff) :
 	      tcp_transmit_skb(sk, buff, 1, sk->sk_allocation);
 	if (err == -ECONNREFUSED)
@@ -95,5 +101,7 @@ int tcp_connect(struct sock *sk)
 [tcp_connect_init](MPTCP-tcp_connect_init.html)
 
 [tcp_transmit_skb](MPTCP-tcp_transmit_skb.html)
+
+[tcp_send_syn_data](MPTCP-tcp_send_syn_data.html)
 
 返回 [tcp_v4_connect](MPTCP-code-study.html)

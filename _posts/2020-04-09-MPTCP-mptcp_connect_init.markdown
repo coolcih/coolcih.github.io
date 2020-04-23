@@ -7,7 +7,7 @@ categories: Network technology
 
 
 ```c
-/* net\mptcp\mptcp_ctrl.c */
+/* net/mptcp/mptcp_ctrl.c */
 void mptcp_connect_init(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);

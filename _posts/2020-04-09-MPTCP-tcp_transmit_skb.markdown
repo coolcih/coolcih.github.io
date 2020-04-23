@@ -7,7 +7,7 @@ categories: Network technology
 
 
 ```c
-/* net\ipv4\tcp_output.c */
+/* net/ipv4/tcp_output.c */
 int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
 		     gfp_t gfp_mask)
 {
@@ -15,8 +15,6 @@ int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
 				  tcp_sk(sk)->rcv_nxt);
 }
 ```
-
-返回 [tcp_connect](MPTCP-tcp_connect.html)
 
 ```c
 /* net\ipv4\tcp_output.c */
@@ -31,6 +29,7 @@ int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
  * We are working here with either a clone of the original
  * SKB, or a fresh unique copy made by the retransmit engine.
  */
+/* TCP包头由此函数生成，MPTCP相关options生成也由此函数负责 */
 static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 			      int clone_it, gfp_t gfp_mask, u32 rcv_nxt)
 {
@@ -129,7 +128,9 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 		}
 	}
 
+	/* 此函数根据前面计算的结果生成TCP包头帧 详情点击下方链接 */
 	tcp_options_write((__be32 *)(th + 1), tp, &opts, skb);
+    
 	skb_shinfo(skb)->gso_type = sk->sk_gso_type;
 	if (likely(!(tcb->tcp_flags & TCPHDR_SYN))) {
 		th->window	= htons(tp->ops->select_window(sk));
@@ -149,7 +150,7 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	}
 #endif
 
-	icsk->icsk_af_ops->send_check(sk, skb);
+	icsk->icsk_af_ops->send_check(sk, skb);/* TODO */
 
 	if (likely(tcb->tcp_flags & TCPHDR_ACK))
 		tcp_event_ack_sent(sk, tcp_skb_pcount(skb), rcv_nxt);
@@ -177,6 +178,10 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	memset(skb->cb, 0, max(sizeof(struct inet_skb_parm),
 			       sizeof(struct inet6_skb_parm)));
 
+	/* 对于MPTCP，这里icsk_af_ops指向的是mptcp_ipv4.c::mptcp_v4_specific 
+	设置过程参考tcp_ipv4.c::tcp_v4_init_sock。在mptcp_v4_specific中queue_xmit
+	指向函数ip_queue_xmit，至此TCP报文就转交给IP层传输。 因为是要向IP层传输了，
+	所以要调用inet_connection_sock(用于address family相关的操作)设置的函数。*/
 	err = icsk->icsk_af_ops->queue_xmit(sk, skb, &inet->cork.fl);
 
 	if (unlikely(err > 0)) {
@@ -192,3 +197,9 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 ```
 
 [tcp_syn_options](MPTCP-tcp_syn_options.html)
+
+[tcp_options_write](MPTCP-tcp_options_write.html)
+
+[tcp_v4_init_sock](MPTCP-tcp_v4_init_sock.html)
+
+返回 [tcp_connect](MPTCP-tcp_connect.html)

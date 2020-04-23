@@ -7,7 +7,7 @@ categories: Network technology
 
 
 ```c
-/* net\ipv4\tcp_output.c */
+/* net/ipv4/tcp_output.c */
 /* Do all connect socket setups that can be done AF independent. */
 /* 在Unix/Linux系统中，在不同的版本中AF_INET和PF_INET有微小差别.对于BSD,是AF,
    对于POSIX是PF。AF = Address Family /  PF = Protocol Family
