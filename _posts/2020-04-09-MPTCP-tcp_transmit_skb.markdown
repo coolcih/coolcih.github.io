@@ -17,7 +17,7 @@ int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
 ```
 
 ```c
-/* net\ipv4\tcp_output.c */
+/* net/ipv4/tcp_output.c */
 /* This routine actually transmits TCP packets queued in by
  * tcp_do_sendmsg().  This is used by both the initial
  * transmission and possible later retransmissions.

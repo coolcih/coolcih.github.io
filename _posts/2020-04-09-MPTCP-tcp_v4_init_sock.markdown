@@ -90,8 +90,6 @@ const struct inet_connection_sock_af_ops ipv4_specific = {
 };
 ```
 
-
-
 ```c
 /* net/ipv4/tcp.c */
 /* Address-family independent initialization for a tcp_sock.
@@ -101,7 +99,18 @@ const struct inet_connection_sock_af_ops ipv4_specific = {
  */
 void tcp_init_sock(struct sock *sk)
 {
+	/* inet_connection_sock结构名中有"connection"连接一词，表示这个结构
+    是针对面向连接的协议，而TCP就是就是面向连接的协议，所以tcp_sock第一个成员
+    的类型就是inet_connection_sock，inet_connection_sock抽象了面向
+    连接的协议大多要包含的特征，例如拥塞状态(congestion state)，协议定时器(pro-
+    tocol timers)和接受队列(accept queue)。 */
+    /* inet_connection_sock的第一个成员类型是inet_sock，来存储网络层信息
+    端口号和IP地址。 */
+	/* inet_sock第一个成员是sock类型，这是所有sock的基本类型，正是这样的继承
+    关系可以通过对sock*的强制类型转换找到inet_sock和inet_connection_sock
+    从而可以实现一些通用函数(参数是sock *)，函数实现根据需要进行转换，如下。 */
 	struct inet_connection_sock *icsk = inet_csk(sk);
+	/* tcp_sock，inet_connection_sock，inet_sock继承关系如下图1 */
 	struct tcp_sock *tp = tcp_sk(sk);
 
 	tp->out_of_order_queue = RB_ROOT;
@@ -157,7 +166,9 @@ void tcp_init_sock(struct sock *sk)
 }
 ```
 
+![tcp_sock](../../../../../images/tcp_sock.png)
 
+<p style="text-align:center">图1 tcp_sock</p>
 
 ```c
 /* include/net/mptcp.h */
@@ -201,6 +212,10 @@ void mptcp_enable_sock(struct sock *sk)
 	}
 }
 ```
+
+
+
+
 
 返回 [tcp_transmit_skb](MPTCP-tcp_transmit_skb.html) /* TODO */
 
