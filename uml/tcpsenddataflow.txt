@@ -1,0 +1,30 @@
+@startuml
+|Application layer|
+:send;
+|#AntiqueWhite|Transport layer|
+:tcp_sendmsg;
+:tcp_push;
+floating note right
+  GreenYellow 
+  part is callflow 
+  of above codes.
+end note
+skinparam PartitionBackgroundColor GreenYellow
+partition __tcp_push_pending_frames {
+:First param: MPTCP meta sock;
+:tcp_sk(meta_sk)->ops->write_xmit;
+}
+partition mptcp_write_xmit {
+:Find avalaible subflow;
+:Get the subflow sock;
+}
+skinparam PartitionBackgroundColor White
+partition __tcp_push_pending_frames {
+:First param: subflow tcp sock;
+:tcp_sk(subflow_sk)->ops->write_xmit;
+}
+:tcp_write_xmit;
+:tcp_transmit_skb;
+|Network layer|
+:ip_queue_xmit;
+@enduml
